@@ -1,0 +1,58 @@
+﻿PS> mysqldump -u root --single-transaction --routines --triggers praktikum_modul10 > backup_modul10.sql
+
+Name               Length LastWriteTime       
+----               ------ -------------       
+backup_modul10.sql   6886 11/5/2026 2:30:45 PM
+
+
+
+PS> mysql -u root -e "DROP DATABASE IF EXISTS praktikum_modul10_restore; CREATE DATABASE praktikum_modul10_restore;"
+PS> cmd /c "mysql -u root praktikum_modul10_restore < backup_modul10.sql"
+exit code: 0
+--------------
+SELECT 'pelanggan' AS tabel, (SELECT COUNT(*) FROM praktikum_modul10.pelanggan) AS asli, (SELECT COUNT(*) FROM praktikum_modul10_restore.pelanggan) AS hasil_restore UNION ALL SELECT 'produk', (SELECT COUNT(*) FROM praktikum_modul10.produk), (SELECT COUNT(*) FROM praktikum_modul10_restore.produk) UNION ALL SELECT 'pesanan', (SELECT COUNT(*) FROM praktikum_modul10.pesanan), (SELECT COUNT(*) FROM praktikum_modul10_restore.pesanan) UNION ALL SELECT 'detail_pesanan', (SELECT COUNT(*) FROM praktikum_modul10.detail_pesanan), (SELECT COUNT(*) FROM praktikum_modul10_restore.detail_pesanan)
+--------------
+
++----------------+------+---------------+
+| tabel          | asli | hasil_restore |
++----------------+------+---------------+
+| pelanggan      |    5 |             5 |
+| produk         |    7 |             7 |
+| pesanan        |    3 |             3 |
+| detail_pesanan |    6 |             6 |
++----------------+------+---------------+
+--------------
+SELECT TABLE_NAME, ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA='praktikum_modul10_restore'
+--------------
+
++----------------+--------+
+| TABLE_NAME     | ENGINE |
++----------------+--------+
+| detail_pesanan | InnoDB |
+| pelanggan      | InnoDB |
+| pesanan        | InnoDB |
+| produk         | InnoDB |
++----------------+--------+
+--------------
+SELECT CONSTRAINT_NAME, TABLE_NAME, DELETE_RULE FROM information_schema.REFERENTIAL_CONSTRAINTS WHERE CONSTRAINT_SCHEMA='praktikum_modul10_restore'
+--------------
+
++----------------------+----------------+-------------+
+| CONSTRAINT_NAME      | TABLE_NAME     | DELETE_RULE |
++----------------------+----------------+-------------+
+| fk_detail_pesanan    | detail_pesanan | CASCADE     |
+| fk_detail_produk     | detail_pesanan | RESTRICT    |
+| fk_pesanan_pelanggan | pesanan        | RESTRICT    |
++----------------------+----------------+-------------+
+--------------
+CHECKSUM TABLE praktikum_modul10.pesanan, praktikum_modul10_restore.pesanan, praktikum_modul10.detail_pesanan, praktikum_modul10_restore.detail_pesanan
+--------------
+
++------------------------------------------+-----------+
+| Table                                    | Checksum  |
++------------------------------------------+-----------+
+| praktikum_modul10.pesanan                | 412833387 |
+| praktikum_modul10_restore.pesanan        | 412833387 |
+| praktikum_modul10.detail_pesanan         |  81416005 |
+| praktikum_modul10_restore.detail_pesanan |  81416005 |
++------------------------------------------+-----------+

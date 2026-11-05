@@ -1,0 +1,1046 @@
+--------------
+DROP DATABASE IF EXISTS praktikum_modul10
+--------------
+
+Query OK, 0 rows affected, 1 warning (0.00 sec)
+
+--------------
+CREATE DATABASE praktikum_modul10 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+--------------
+
+Query OK, 1 row affected (0.00 sec)
+
+--------------
+SELECT VERSION() AS versi_dbms, @@version_comment AS distribusi, @@version_compile_os AS os, @@default_storage_engine AS default_engine, @@port AS port
+--------------
+
++------------+------------------------------+-------+----------------+------+
+| versi_dbms | distribusi                   | os    | default_engine | port |
++------------+------------------------------+-------+----------------+------+
+| 8.4.3      | MySQL Community Server - GPL | Win64 | InnoDB         | 3306 |
++------------+------------------------------+-------+----------------+------+
+1 row in set (0.00 sec)
+
+--------------
+SELECT ENGINE, SUPPORT, TRANSACTIONS, XA, SAVEPOINTS FROM information_schema.ENGINES WHERE ENGINE IN ('InnoDB', 'MyISAM', 'MEMORY', 'CSV')
+--------------
+
++--------+---------+--------------+------+------------+
+| ENGINE | SUPPORT | TRANSACTIONS | XA   | SAVEPOINTS |
++--------+---------+--------------+------+------------+
+| MEMORY | YES     | NO           | NO   | NO         |
+| CSV    | YES     | NO           | NO   | NO         |
+| MyISAM | YES     | NO           | NO   | NO         |
+| InnoDB | DEFAULT | YES          | YES  | YES        |
++--------+---------+--------------+------+------------+
+4 rows in set (0.00 sec)
+
+--------------
+CREATE TABLE pelanggan (
+    id_pelanggan INT AUTO_INCREMENT PRIMARY KEY,
+    nama_pelanggan VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    no_hp VARCHAR(20),
+    kota VARCHAR(50) NOT NULL,
+    tanggal_daftar DATE NOT NULL DEFAULT (CURRENT_DATE)
+) ENGINE=InnoDB
+--------------
+
+Query OK, 0 rows affected (0.03 sec)
+
+--------------
+CREATE TABLE produk (
+    id_produk INT AUTO_INCREMENT PRIMARY KEY,
+    nama_produk VARCHAR(100) NOT NULL,
+    kategori VARCHAR(50) NOT NULL,
+    harga DECIMAL(12,2) NOT NULL,
+    stok INT NOT NULL DEFAULT 0,
+    CONSTRAINT chk_produk_harga CHECK (harga >= 0),
+    CONSTRAINT chk_produk_stok CHECK (stok >= 0)
+) ENGINE=InnoDB
+--------------
+
+Query OK, 0 rows affected (0.01 sec)
+
+--------------
+CREATE TABLE pesanan (
+    id_pesanan INT AUTO_INCREMENT PRIMARY KEY,
+    id_pelanggan INT NOT NULL,
+    tanggal_pesanan DATETIME NOT NULL,
+    status ENUM('baru', 'dibayar', 'dikirim', 'selesai', 'batal') NOT NULL DEFAULT 'baru',
+    total_harga DECIMAL(14,2) NOT NULL DEFAULT 0,
+    CONSTRAINT fk_pesanan_pelanggan FOREIGN KEY (id_pelanggan)
+        REFERENCES pelanggan (id_pelanggan)
+        ON UPDATE CASCADE ON DELETE RESTRICT
+) ENGINE=InnoDB AUTO_INCREMENT=101
+--------------
+
+Query OK, 0 rows affected (0.02 sec)
+
+--------------
+CREATE TABLE detail_pesanan (
+    id_detail INT AUTO_INCREMENT PRIMARY KEY,
+    id_pesanan INT NOT NULL,
+    id_produk INT NOT NULL,
+    jumlah INT NOT NULL,
+    harga_saat_transaksi DECIMAL(12,2) NOT NULL,
+    CONSTRAINT uq_detail_pesanan_produk UNIQUE (id_pesanan, id_produk),
+    CONSTRAINT chk_detail_jumlah CHECK (jumlah > 0),
+    CONSTRAINT chk_detail_harga CHECK (harga_saat_transaksi >= 0),
+    CONSTRAINT fk_detail_pesanan FOREIGN KEY (id_pesanan)
+        REFERENCES pesanan (id_pesanan)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT fk_detail_produk FOREIGN KEY (id_produk)
+        REFERENCES produk (id_produk)
+        ON UPDATE CASCADE ON DELETE RESTRICT
+) ENGINE=InnoDB
+--------------
+
+Query OK, 0 rows affected (0.02 sec)
+
+--------------
+SELECT TABLE_NAME, ENGINE, TABLE_COLLATION
+FROM information_schema.TABLES
+WHERE TABLE_SCHEMA = 'praktikum_modul10'
+--------------
+
++----------------+--------+--------------------+
+| TABLE_NAME     | ENGINE | TABLE_COLLATION    |
++----------------+--------+--------------------+
+| detail_pesanan | InnoDB | utf8mb4_unicode_ci |
+| pelanggan      | InnoDB | utf8mb4_unicode_ci |
+| pesanan        | InnoDB | utf8mb4_unicode_ci |
+| produk         | InnoDB | utf8mb4_unicode_ci |
++----------------+--------+--------------------+
+4 rows in set (0.00 sec)
+
+--------------
+SHOW CREATE TABLE pesanan
+--------------
+
++---------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Table   | Create Table                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
++---------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| pesanan | CREATE TABLE `pesanan` (
+  `id_pesanan` int NOT NULL AUTO_INCREMENT,
+  `id_pelanggan` int NOT NULL,
+  `tanggal_pesanan` datetime NOT NULL,
+  `status` enum('baru','dibayar','dikirim','selesai','batal') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'baru',
+  `total_harga` decimal(14,2) NOT NULL DEFAULT '0.00',
+  PRIMARY KEY (`id_pesanan`),
+  KEY `fk_pesanan_pelanggan` (`id_pelanggan`),
+  CONSTRAINT `fk_pesanan_pelanggan` FOREIGN KEY (`id_pelanggan`) REFERENCES `pelanggan` (`id_pelanggan`) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=101 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci |
++---------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.01 sec)
+
+--------------
+DESCRIBE detail_pesanan
+--------------
+
++----------------------+---------------+------+-----+---------+----------------+
+| Field                | Type          | Null | Key | Default | Extra          |
++----------------------+---------------+------+-----+---------+----------------+
+| id_detail            | int           | NO   | PRI | NULL    | auto_increment |
+| id_pesanan           | int           | NO   | MUL | NULL    |                |
+| id_produk            | int           | NO   | MUL | NULL    |                |
+| jumlah               | int           | NO   |     | NULL    |                |
+| harga_saat_transaksi | decimal(12,2) | NO   |     | NULL    |                |
++----------------------+---------------+------+-----+---------+----------------+
+5 rows in set (0.00 sec)
+
+--------------
+SELECT TABLE_NAME, CONSTRAINT_NAME, CONSTRAINT_TYPE
+FROM information_schema.TABLE_CONSTRAINTS
+WHERE TABLE_SCHEMA = 'praktikum_modul10'
+ORDER BY TABLE_NAME, CONSTRAINT_TYPE
+--------------
+
++----------------+--------------------------+-----------------+
+| TABLE_NAME     | CONSTRAINT_NAME          | CONSTRAINT_TYPE |
++----------------+--------------------------+-----------------+
+| detail_pesanan | chk_detail_harga         | CHECK           |
+| detail_pesanan | chk_detail_jumlah        | CHECK           |
+| detail_pesanan | fk_detail_pesanan        | FOREIGN KEY     |
+| detail_pesanan | fk_detail_produk         | FOREIGN KEY     |
+| detail_pesanan | PRIMARY                  | PRIMARY KEY     |
+| detail_pesanan | uq_detail_pesanan_produk | UNIQUE          |
+| pelanggan      | PRIMARY                  | PRIMARY KEY     |
+| pelanggan      | email                    | UNIQUE          |
+| pesanan        | fk_pesanan_pelanggan     | FOREIGN KEY     |
+| pesanan        | PRIMARY                  | PRIMARY KEY     |
+| produk         | chk_produk_harga         | CHECK           |
+| produk         | chk_produk_stok          | CHECK           |
+| produk         | PRIMARY                  | PRIMARY KEY     |
++----------------+--------------------------+-----------------+
+13 rows in set (0.00 sec)
+
+--------------
+SELECT k.TABLE_NAME, k.COLUMN_NAME, k.CONSTRAINT_NAME, k.REFERENCED_TABLE_NAME, k.REFERENCED_COLUMN_NAME, r.UPDATE_RULE, r.DELETE_RULE
+FROM information_schema.KEY_COLUMN_USAGE k
+JOIN information_schema.REFERENTIAL_CONSTRAINTS r
+    ON r.CONSTRAINT_SCHEMA = k.TABLE_SCHEMA AND r.CONSTRAINT_NAME = k.CONSTRAINT_NAME
+WHERE k.TABLE_SCHEMA = 'praktikum_modul10'
+--------------
+
++----------------+--------------+----------------------+-----------------------+------------------------+-------------+-------------+
+| TABLE_NAME     | COLUMN_NAME  | CONSTRAINT_NAME      | REFERENCED_TABLE_NAME | REFERENCED_COLUMN_NAME | UPDATE_RULE | DELETE_RULE |
++----------------+--------------+----------------------+-----------------------+------------------------+-------------+-------------+
+| detail_pesanan | id_pesanan   | fk_detail_pesanan    | pesanan               | id_pesanan             | CASCADE     | CASCADE     |
+| detail_pesanan | id_produk    | fk_detail_produk     | produk                | id_produk              | CASCADE     | RESTRICT    |
+| pesanan        | id_pelanggan | fk_pesanan_pelanggan | pelanggan             | id_pelanggan           | CASCADE     | RESTRICT    |
++----------------+--------------+----------------------+-----------------------+------------------------+-------------+-------------+
+3 rows in set (0.00 sec)
+
+--------------
+INSERT INTO pelanggan (nama_pelanggan, email, no_hp, kota) VALUES
+('Andi Pratama', 'andi@mail.test', '081200000001', 'Surabaya'),
+('Budi Santoso', 'budi@mail.test', '081200000002', 'Malang'),
+('Citra Lestari', 'citra@mail.test', '081200000003', 'Sidoarjo'),
+('Dewi Anggraini', 'dewi@mail.test', '081200000004', 'Surabaya'),
+('Eka Saputra', 'eka@mail.test', '081200000005', 'Gresik')
+--------------
+
+Query OK, 5 rows affected (0.00 sec)
+Records: 5  Duplicates: 0  Warnings: 0
+
+--------------
+INSERT INTO produk (nama_produk, kategori, harga, stok) VALUES
+('Beras Premium 5 kg', 'Sembako', 75000, 50),
+('Minyak Goreng 2 L', 'Sembako', 38000, 40),
+('Gula Pasir 1 kg', 'Sembako', 17500, 60),
+('Kopi Bubuk 200 g', 'Minuman', 25000, 30),
+('Teh Celup isi 25', 'Minuman', 8500, 80),
+('Sabun Mandi', 'Perlengkapan', 4500, 100)
+--------------
+
+Query OK, 6 rows affected (0.00 sec)
+Records: 6  Duplicates: 0  Warnings: 0
+
+--------------
+INSERT INTO pesanan (id_pesanan, id_pelanggan, tanggal_pesanan, status, total_harga) VALUES
+(101, 1, '2026-10-01 10:15:00', 'selesai', 110000),
+(102, 2, '2026-10-02 14:40:00', 'dibayar', 55000)
+--------------
+
+Query OK, 2 rows affected (0.00 sec)
+Records: 2  Duplicates: 0  Warnings: 0
+
+--------------
+INSERT INTO detail_pesanan (id_pesanan, id_produk, jumlah, harga_saat_transaksi) VALUES
+(101, 1, 1, 75000),
+(101, 3, 2, 17500),
+(102, 2, 1, 38000),
+(102, 5, 2, 8500)
+--------------
+
+Query OK, 4 rows affected (0.00 sec)
+Records: 4  Duplicates: 0  Warnings: 0
+
+--------------
+INSERT INTO pelanggan (nama_pelanggan, email, no_hp, kota)
+VALUES ('Fajar Nugroho', 'fajar@mail.test', '081200000006', 'Malang')
+--------------
+
+Query OK, 1 row affected (0.00 sec)
+
+--------------
+INSERT INTO produk (nama_produk, kategori, harga, stok)
+VALUES ('Mi Instan Goreng', 'Makanan', 3500, 200)
+--------------
+
+Query OK, 1 row affected (0.00 sec)
+
+--------------
+SELECT * FROM pelanggan
+--------------
+
++--------------+----------------+-----------------+--------------+----------+----------------+
+| id_pelanggan | nama_pelanggan | email           | no_hp        | kota     | tanggal_daftar |
++--------------+----------------+-----------------+--------------+----------+----------------+
+|            1 | Andi Pratama   | andi@mail.test  | 081200000001 | Surabaya | 2026-11-05     |
+|            2 | Budi Santoso   | budi@mail.test  | 081200000002 | Malang   | 2026-11-05     |
+|            3 | Citra Lestari  | citra@mail.test | 081200000003 | Sidoarjo | 2026-11-05     |
+|            4 | Dewi Anggraini | dewi@mail.test  | 081200000004 | Surabaya | 2026-11-05     |
+|            5 | Eka Saputra    | eka@mail.test   | 081200000005 | Gresik   | 2026-11-05     |
+|            6 | Fajar Nugroho  | fajar@mail.test | 081200000006 | Malang   | 2026-11-05     |
++--------------+----------------+-----------------+--------------+----------+----------------+
+6 rows in set (0.00 sec)
+
+--------------
+SELECT * FROM produk
+--------------
+
++-----------+--------------------+--------------+----------+------+
+| id_produk | nama_produk        | kategori     | harga    | stok |
++-----------+--------------------+--------------+----------+------+
+|         1 | Beras Premium 5 kg | Sembako      | 75000.00 |   50 |
+|         2 | Minyak Goreng 2 L  | Sembako      | 38000.00 |   40 |
+|         3 | Gula Pasir 1 kg    | Sembako      | 17500.00 |   60 |
+|         4 | Kopi Bubuk 200 g   | Minuman      | 25000.00 |   30 |
+|         5 | Teh Celup isi 25   | Minuman      |  8500.00 |   80 |
+|         6 | Sabun Mandi        | Perlengkapan |  4500.00 |  100 |
+|         7 | Mi Instan Goreng   | Makanan      |  3500.00 |  200 |
++-----------+--------------------+--------------+----------+------+
+7 rows in set (0.00 sec)
+
+--------------
+SELECT id_pelanggan, nama_pelanggan, kota FROM pelanggan WHERE kota = 'Surabaya'
+--------------
+
++--------------+----------------+----------+
+| id_pelanggan | nama_pelanggan | kota     |
++--------------+----------------+----------+
+|            1 | Andi Pratama   | Surabaya |
+|            4 | Dewi Anggraini | Surabaya |
++--------------+----------------+----------+
+2 rows in set (0.00 sec)
+
+--------------
+SELECT ps.id_pesanan, pl.nama_pelanggan, pr.nama_produk, dp.jumlah, dp.harga_saat_transaksi,
+       dp.jumlah * dp.harga_saat_transaksi AS subtotal
+FROM pesanan ps
+JOIN pelanggan pl ON pl.id_pelanggan = ps.id_pelanggan
+JOIN detail_pesanan dp ON dp.id_pesanan = ps.id_pesanan
+JOIN produk pr ON pr.id_produk = dp.id_produk
+ORDER BY ps.id_pesanan, pr.nama_produk
+--------------
+
++------------+----------------+--------------------+--------+----------------------+----------+
+| id_pesanan | nama_pelanggan | nama_produk        | jumlah | harga_saat_transaksi | subtotal |
++------------+----------------+--------------------+--------+----------------------+----------+
+|        101 | Andi Pratama   | Beras Premium 5 kg |      1 |             75000.00 | 75000.00 |
+|        101 | Andi Pratama   | Gula Pasir 1 kg    |      2 |             17500.00 | 35000.00 |
+|        102 | Budi Santoso   | Minyak Goreng 2 L  |      1 |             38000.00 | 38000.00 |
+|        102 | Budi Santoso   | Teh Celup isi 25   |      2 |              8500.00 | 17000.00 |
++------------+----------------+--------------------+--------+----------------------+----------+
+4 rows in set (0.00 sec)
+
+--------------
+UPDATE produk SET harga = 80000 WHERE id_produk = 1
+--------------
+
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+--------------
+UPDATE pelanggan SET no_hp = '081299999993' WHERE id_pelanggan = 3
+--------------
+
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+--------------
+SELECT id_produk, nama_produk, harga FROM produk WHERE id_produk = 1
+--------------
+
++-----------+--------------------+----------+
+| id_produk | nama_produk        | harga    |
++-----------+--------------------+----------+
+|         1 | Beras Premium 5 kg | 80000.00 |
++-----------+--------------------+----------+
+1 row in set (0.00 sec)
+
+--------------
+SELECT id_pesanan, id_produk, harga_saat_transaksi FROM detail_pesanan WHERE id_produk = 1
+--------------
+
++------------+-----------+----------------------+
+| id_pesanan | id_produk | harga_saat_transaksi |
++------------+-----------+----------------------+
+|        101 |         1 |             75000.00 |
++------------+-----------+----------------------+
+1 row in set (0.00 sec)
+
+--------------
+SELECT id_pelanggan, nama_pelanggan, no_hp FROM pelanggan WHERE id_pelanggan = 3
+--------------
+
++--------------+----------------+--------------+
+| id_pelanggan | nama_pelanggan | no_hp        |
++--------------+----------------+--------------+
+|            3 | Citra Lestari  | 081299999993 |
++--------------+----------------+--------------+
+1 row in set (0.00 sec)
+
+--------------
+DELETE FROM pelanggan WHERE id_pelanggan = 6
+--------------
+
+Query OK, 1 row affected (0.00 sec)
+
+--------------
+SELECT id_pelanggan, nama_pelanggan FROM pelanggan
+--------------
+
++--------------+----------------+
+| id_pelanggan | nama_pelanggan |
++--------------+----------------+
+|            1 | Andi Pratama   |
+|            2 | Budi Santoso   |
+|            3 | Citra Lestari  |
+|            4 | Dewi Anggraini |
+|            5 | Eka Saputra    |
++--------------+----------------+
+5 rows in set (0.00 sec)
+
+--------------
+INSERT INTO pesanan (id_pelanggan, tanggal_pesanan, status) VALUES (999, NOW(), 'baru')
+--------------
+
+ERROR 1452 (23000) at line 123: Cannot add or update a child row: a foreign key constraint fails (`praktikum_modul10`.`pesanan`, CONSTRAINT `fk_pesanan_pelanggan` FOREIGN KEY (`id_pelanggan`) REFERENCES `pelanggan` (`id_pelanggan`) ON DELETE RESTRICT ON UPDATE CASCADE)
+--------------
+DELETE FROM pelanggan WHERE id_pelanggan = 1
+--------------
+
+ERROR 1451 (23000) at line 124: Cannot delete or update a parent row: a foreign key constraint fails (`praktikum_modul10`.`pesanan`, CONSTRAINT `fk_pesanan_pelanggan` FOREIGN KEY (`id_pelanggan`) REFERENCES `pelanggan` (`id_pelanggan`) ON DELETE RESTRICT ON UPDATE CASCADE)
+--------------
+INSERT INTO detail_pesanan (id_pesanan, id_produk, jumlah, harga_saat_transaksi) VALUES (101, 9999, 1, 1000)
+--------------
+
+ERROR 1452 (23000) at line 125: Cannot add or update a child row: a foreign key constraint fails (`praktikum_modul10`.`detail_pesanan`, CONSTRAINT `fk_detail_produk` FOREIGN KEY (`id_produk`) REFERENCES `produk` (`id_produk`) ON DELETE RESTRICT ON UPDATE CASCADE)
+--------------
+INSERT INTO pelanggan (id_pelanggan, nama_pelanggan, email, kota) VALUES (1, 'Andi Kembar', 'andi2@mail.test', 'Surabaya')
+--------------
+
+ERROR 1062 (23000) at line 126: Duplicate entry '1' for key 'pelanggan.PRIMARY'
+--------------
+INSERT INTO pelanggan (nama_pelanggan, email, kota) VALUES ('Andi Duplikat', 'andi@mail.test', 'Surabaya')
+--------------
+
+ERROR 1062 (23000) at line 127: Duplicate entry 'andi@mail.test' for key 'pelanggan.email'
+--------------
+INSERT INTO pelanggan (nama_pelanggan, email, kota) VALUES (NULL, 'kosong@mail.test', 'Malang')
+--------------
+
+ERROR 1048 (23000) at line 128: Column 'nama_pelanggan' cannot be null
+--------------
+INSERT INTO produk (nama_produk, kategori, harga, stok) VALUES ('Produk Error', 'Sembako', -1000, 10)
+--------------
+
+ERROR 3819 (HY000) at line 129: Check constraint 'chk_produk_harga' is violated.
+--------------
+INSERT INTO detail_pesanan (id_pesanan, id_produk, jumlah, harga_saat_transaksi) VALUES (101, 3, 1, 17500)
+--------------
+
+ERROR 1062 (23000) at line 130: Duplicate entry '101-3' for key 'detail_pesanan.uq_detail_pesanan_produk'
+--------------
+SELECT COUNT(*) AS jumlah_pesanan_pelanggan_1 FROM pesanan WHERE id_pelanggan = 1
+--------------
+
++----------------------------+
+| jumlah_pesanan_pelanggan_1 |
++----------------------------+
+|                          1 |
++----------------------------+
+1 row in set (0.00 sec)
+
+--------------
+START TRANSACTION
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+INSERT INTO pesanan (id_pesanan, id_pelanggan, tanggal_pesanan, status) VALUES (103, 3, '2026-10-03 09:30:00', 'dibayar')
+--------------
+
+Query OK, 1 row affected (0.00 sec)
+
+--------------
+INSERT INTO detail_pesanan (id_pesanan, id_produk, jumlah, harga_saat_transaksi) VALUES
+(103, 4, 2, 25000),
+(103, 6, 3, 4500)
+--------------
+
+Query OK, 2 rows affected (0.00 sec)
+Records: 2  Duplicates: 0  Warnings: 0
+
+--------------
+UPDATE produk SET stok = stok - 2 WHERE id_produk = 4
+--------------
+
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+--------------
+UPDATE produk SET stok = stok - 3 WHERE id_produk = 6
+--------------
+
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+--------------
+UPDATE pesanan
+SET total_harga = (SELECT SUM(jumlah * harga_saat_transaksi) FROM detail_pesanan WHERE id_pesanan = 103)
+WHERE id_pesanan = 103
+--------------
+
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+--------------
+COMMIT
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+SELECT * FROM pesanan WHERE id_pesanan = 103
+--------------
+
++------------+--------------+---------------------+---------+-------------+
+| id_pesanan | id_pelanggan | tanggal_pesanan     | status  | total_harga |
++------------+--------------+---------------------+---------+-------------+
+|        103 |            3 | 2026-10-03 09:30:00 | dibayar |    63500.00 |
++------------+--------------+---------------------+---------+-------------+
+1 row in set (0.00 sec)
+
+--------------
+SELECT * FROM detail_pesanan WHERE id_pesanan = 103
+--------------
+
++-----------+------------+-----------+--------+----------------------+
+| id_detail | id_pesanan | id_produk | jumlah | harga_saat_transaksi |
++-----------+------------+-----------+--------+----------------------+
+|         7 |        103 |         4 |      2 |             25000.00 |
+|         8 |        103 |         6 |      3 |              4500.00 |
++-----------+------------+-----------+--------+----------------------+
+2 rows in set (0.00 sec)
+
+--------------
+SELECT id_produk, nama_produk, stok FROM produk WHERE id_produk IN (4, 6)
+--------------
+
++-----------+------------------+------+
+| id_produk | nama_produk      | stok |
++-----------+------------------+------+
+|         4 | Kopi Bubuk 200 g |   28 |
+|         6 | Sabun Mandi      |   97 |
++-----------+------------------+------+
+2 rows in set (0.00 sec)
+
+--------------
+START TRANSACTION
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+INSERT INTO pesanan (id_pesanan, id_pelanggan, tanggal_pesanan, status, total_harga) VALUES (104, 4, '2026-10-04 11:00:00', 'baru', 80000)
+--------------
+
+Query OK, 1 row affected (0.00 sec)
+
+--------------
+INSERT INTO detail_pesanan (id_pesanan, id_produk, jumlah, harga_saat_transaksi) VALUES (104, 1, 1, 80000)
+--------------
+
+Query OK, 1 row affected (0.00 sec)
+
+--------------
+UPDATE produk SET stok = stok - 1 WHERE id_produk = 1
+--------------
+
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+--------------
+SELECT * FROM pesanan WHERE id_pesanan = 104
+--------------
+
++------------+--------------+---------------------+--------+-------------+
+| id_pesanan | id_pelanggan | tanggal_pesanan     | status | total_harga |
++------------+--------------+---------------------+--------+-------------+
+|        104 |            4 | 2026-10-04 11:00:00 | baru   |    80000.00 |
++------------+--------------+---------------------+--------+-------------+
+1 row in set (0.00 sec)
+
+--------------
+ROLLBACK
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+SELECT * FROM pesanan WHERE id_pesanan = 104
+--------------
+
+Empty set (0.00 sec)
+
+--------------
+SELECT * FROM detail_pesanan WHERE id_pesanan = 104
+--------------
+
+Empty set (0.00 sec)
+
+--------------
+SELECT id_produk, nama_produk, stok FROM produk WHERE id_produk = 1
+--------------
+
++-----------+--------------------+------+
+| id_produk | nama_produk        | stok |
++-----------+--------------------+------+
+|         1 | Beras Premium 5 kg |   50 |
++-----------+--------------------+------+
+1 row in set (0.00 sec)
+
+--------------
+CREATE TABLE angka (n TINYINT PRIMARY KEY)
+--------------
+
+Query OK, 0 rows affected (0.01 sec)
+
+--------------
+INSERT INTO angka VALUES (0), (1), (2), (3), (4), (5), (6), (7), (8), (9)
+--------------
+
+Query OK, 10 rows affected (0.00 sec)
+Records: 10  Duplicates: 0  Warnings: 0
+
+--------------
+INSERT INTO pelanggan (id_pelanggan, nama_pelanggan, email, no_hp, kota, tanggal_daftar)
+SELECT 1000 + s.seq,
+       CONCAT('Pelanggan Sim ', s.seq),
+       CONCAT('sim', s.seq, '@mail.test'),
+       CONCAT('08', LPAD(s.seq, 10, '0')),
+       ELT(1 + s.seq % 8, 'Surabaya', 'Malang', 'Sidoarjo', 'Gresik', 'Mojokerto', 'Pasuruan', 'Jember', 'Kediri'),
+       DATE('2024-01-01') + INTERVAL (s.seq % 730) DAY
+FROM (SELECT a.n + b.n * 10 + c.n * 100 + d.n * 1000 + e.n * 10000 + 1 AS seq
+      FROM angka a CROSS JOIN angka b CROSS JOIN angka c CROSS JOIN angka d CROSS JOIN angka e) s
+--------------
+
+Query OK, 100000 rows affected (1.51 sec)
+Records: 100000  Duplicates: 0  Warnings: 0
+
+--------------
+INSERT INTO produk (id_produk, nama_produk, kategori, harga, stok)
+SELECT 1000 + s.seq,
+       CONCAT('Produk Sim ', s.seq),
+       ELT(1 + s.seq % 5, 'Sembako', 'Minuman', 'Perlengkapan', 'Makanan', 'Kesehatan'),
+       1000 + (s.seq * 137 % 990) * 100,
+       1000
+FROM (SELECT a.n + b.n * 10 + c.n * 100 + 1 AS seq
+      FROM angka a CROSS JOIN angka b CROSS JOIN angka c) s
+--------------
+
+Query OK, 1000 rows affected (0.01 sec)
+Records: 1000  Duplicates: 0  Warnings: 0
+
+--------------
+INSERT INTO pesanan (id_pesanan, id_pelanggan, tanggal_pesanan, status)
+SELECT 1000 + s.seq,
+       1001 + (s.seq * 7919) % 100000,
+       TIMESTAMP('2024-01-01') + INTERVAL ((s.seq * 104729) % 63072000) SECOND,
+       ELT(1 + s.seq % 5, 'baru', 'dibayar', 'dikirim', 'selesai', 'batal')
+FROM (SELECT a.n + b.n * 10 + c.n * 100 + d.n * 1000 + e.n * 10000 + f.n * 100000 + 1 AS seq
+      FROM angka a CROSS JOIN angka b CROSS JOIN angka c CROSS JOIN angka d CROSS JOIN angka e CROSS JOIN angka f) s
+--------------
+
+Query OK, 1000000 rows affected (12.85 sec)
+Records: 1000000  Duplicates: 0  Warnings: 0
+
+--------------
+INSERT INTO detail_pesanan (id_pesanan, id_produk, jumlah, harga_saat_transaksi)
+SELECT p.id_pesanan, pr.id_produk, 1 + (p.id_pesanan + k.k) % 5, pr.harga
+FROM pesanan p
+CROSS JOIN (SELECT 1 AS k UNION ALL SELECT 2) k
+JOIN produk pr ON pr.id_produk = 1001 + (p.id_pesanan * 7 + k.k * 13) % 1000
+WHERE p.id_pesanan > 1000
+--------------
+
+Query OK, 2000000 rows affected (52.98 sec)
+Records: 2000000  Duplicates: 0  Warnings: 0
+
+--------------
+UPDATE pesanan p
+JOIN (SELECT id_pesanan, SUM(jumlah * harga_saat_transaksi) AS total
+      FROM detail_pesanan
+      WHERE id_pesanan > 1000
+      GROUP BY id_pesanan) t ON t.id_pesanan = p.id_pesanan
+SET p.total_harga = t.total
+--------------
+
+Query OK, 1000000 rows affected (18.18 sec)
+Rows matched: 1000000  Changed: 1000000  Warnings: 0
+
+--------------
+ANALYZE TABLE pelanggan, produk, pesanan, detail_pesanan
+--------------
+
++----------------------------------+---------+----------+----------+
+| Table                            | Op      | Msg_type | Msg_text |
++----------------------------------+---------+----------+----------+
+| praktikum_modul10.pelanggan      | analyze | status   | OK       |
+| praktikum_modul10.produk         | analyze | status   | OK       |
+| praktikum_modul10.pesanan        | analyze | status   | OK       |
+| praktikum_modul10.detail_pesanan | analyze | status   | OK       |
++----------------------------------+---------+----------+----------+
+4 rows in set (0.04 sec)
+
+--------------
+SELECT 'pelanggan' AS tabel, COUNT(*) AS jumlah_baris FROM pelanggan
+UNION ALL SELECT 'produk', COUNT(*) FROM produk
+UNION ALL SELECT 'pesanan', COUNT(*) FROM pesanan
+UNION ALL SELECT 'detail_pesanan', COUNT(*) FROM detail_pesanan
+--------------
+
++----------------+--------------+
+| tabel          | jumlah_baris |
++----------------+--------------+
+| pelanggan      |       100005 |
+| produk         |         1007 |
+| pesanan        |      1000003 |
+| detail_pesanan |      2000006 |
++----------------+--------------+
+4 rows in set (0.67 sec)
+
+--------------
+EXPLAIN SELECT id_pesanan, id_pelanggan, tanggal_pesanan, total_harga
+FROM pesanan
+WHERE tanggal_pesanan BETWEEN '2025-03-01 00:00:00' AND '2025-03-07 23:59:59'
+--------------
+
++----+-------------+---------+------------+------+---------------+------+---------+------+--------+----------+-------------+
+| id | select_type | table   | partitions | type | possible_keys | key  | key_len | ref  | rows   | filtered | Extra       |
++----+-------------+---------+------------+------+---------------+------+---------+------+--------+----------+-------------+
+|  1 | SIMPLE      | pesanan | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 968734 |    11.11 | Using where |
++----+-------------+---------+------------+------+---------------+------+---------+------+--------+----------+-------------+
+1 row in set, 1 warning (0.00 sec)
+
+--------------
+EXPLAIN ANALYZE SELECT id_pesanan, id_pelanggan, tanggal_pesanan, total_harga
+FROM pesanan
+WHERE tanggal_pesanan BETWEEN '2025-03-01 00:00:00' AND '2025-03-07 23:59:59'
+--------------
+
++----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| EXPLAIN                                                                                                                                                                                                                                                              |
++----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| -> Filter: (pesanan.tanggal_pesanan between '2025-03-01 00:00:00' and '2025-03-07 23:59:59')  (cost=100631 rows=107626) (actual time=6.78..697 rows=9589 loops=1)
+    -> Table scan on pesanan  (cost=100631 rows=968734) (actual time=6.64..356 rows=1e+6 loops=1)
+ |
++----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.70 sec)
+
+--------------
+EXPLAIN SELECT id_pelanggan, nama_pelanggan, email, kota
+FROM pelanggan
+WHERE nama_pelanggan = 'Pelanggan Sim 77777'
+--------------
+
++----+-------------+-----------+------------+------+---------------+------+---------+------+-------+----------+-------------+
+| id | select_type | table     | partitions | type | possible_keys | key  | key_len | ref  | rows  | filtered | Extra       |
++----+-------------+-----------+------------+------+---------------+------+---------+------+-------+----------+-------------+
+|  1 | SIMPLE      | pelanggan | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 88236 |    10.00 | Using where |
++----+-------------+-----------+------------+------+---------------+------+---------+------+-------+----------+-------------+
+1 row in set, 1 warning (0.00 sec)
+
+--------------
+EXPLAIN ANALYZE SELECT id_pelanggan, nama_pelanggan, email, kota
+FROM pelanggan
+WHERE nama_pelanggan = 'Pelanggan Sim 77777'
+--------------
+
++-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| EXPLAIN                                                                                                                                                                                                                           |
++-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| -> Filter: (pelanggan.nama_pelanggan = 'Pelanggan Sim 77777')  (cost=10394 rows=8824) (actual time=128..163 rows=1 loops=1)
+    -> Table scan on pelanggan  (cost=10394 rows=88236) (actual time=0.571..153 rows=100005 loops=1)
+ |
++-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.16 sec)
+
+--------------
+EXPLAIN SELECT pl.kota, COUNT(DISTINCT ps.id_pesanan) AS jumlah_pesanan, SUM(dp.jumlah * dp.harga_saat_transaksi) AS omzet
+FROM pesanan ps
+JOIN pelanggan pl ON pl.id_pelanggan = ps.id_pelanggan
+JOIN detail_pesanan dp ON dp.id_pesanan = ps.id_pesanan
+WHERE ps.tanggal_pesanan BETWEEN '2025-03-01 00:00:00' AND '2025-03-07 23:59:59'
+GROUP BY pl.kota
+ORDER BY omzet DESC
+--------------
+
++----+-------------+-------+------------+--------+------------------------------+--------------------------+---------+-----------------------------------+--------+----------+----------------------------------------------+
+| id | select_type | table | partitions | type   | possible_keys                | key                      | key_len | ref                               | rows   | filtered | Extra                                        |
++----+-------------+-------+------------+--------+------------------------------+--------------------------+---------+-----------------------------------+--------+----------+----------------------------------------------+
+|  1 | SIMPLE      | ps    | NULL       | ALL    | PRIMARY,fk_pesanan_pelanggan | NULL                     | NULL    | NULL                              | 968734 |    11.11 | Using where; Using temporary; Using filesort |
+|  1 | SIMPLE      | pl    | NULL       | eq_ref | PRIMARY                      | PRIMARY                  | 4       | praktikum_modul10.ps.id_pelanggan |      1 |   100.00 | NULL                                         |
+|  1 | SIMPLE      | dp    | NULL       | ref    | uq_detail_pesanan_produk     | uq_detail_pesanan_produk | 4       | praktikum_modul10.ps.id_pesanan   |      1 |   100.00 | NULL                                         |
++----+-------------+-------+------------+--------+------------------------------+--------------------------+---------+-----------------------------------+--------+----------+----------------------------------------------+
+3 rows in set, 1 warning (0.00 sec)
+
+--------------
+EXPLAIN ANALYZE SELECT pl.kota, COUNT(DISTINCT ps.id_pesanan) AS jumlah_pesanan, SUM(dp.jumlah * dp.harga_saat_transaksi) AS omzet
+FROM pesanan ps
+JOIN pelanggan pl ON pl.id_pelanggan = ps.id_pelanggan
+JOIN detail_pesanan dp ON dp.id_pesanan = ps.id_pesanan
+WHERE ps.tanggal_pesanan BETWEEN '2025-03-01 00:00:00' AND '2025-03-07 23:59:59'
+GROUP BY pl.kota
+ORDER BY omzet DESC
+--------------
+
++----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| EXPLAIN                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
++----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| -> Sort: omzet DESC  (actual time=1371..1371 rows=8 loops=1)
+    -> Stream results  (actual time=1367..1371 rows=8 loops=1)
+        -> Group aggregate: count(distinct pesanan.id_pesanan), sum(tmp_field)  (actual time=1367..1371 rows=8 loops=1)
+            -> Sort: pl.kota  (actual time=1367..1367 rows=19178 loops=1)
+                -> Stream results  (cost=364668 rows=206982) (actual time=14.2..1326 rows=19178 loops=1)
+                    -> Nested loop inner join  (cost=364668 rows=206982) (actual time=14.2..1314 rows=19178 loops=1)
+                        -> Nested loop inner join  (cost=137017 rows=107626) (actual time=13.9..883 rows=9589 loops=1)
+                            -> Filter: (ps.tanggal_pesanan between '2025-03-01 00:00:00' and '2025-03-07 23:59:59')  (cost=99348 rows=107626) (actual time=13.7..677 rows=9589 loops=1)
+                                -> Table scan on ps  (cost=99348 rows=968734) (actual time=13.6..330 rows=1e+6 loops=1)
+                            -> Single-row index lookup on pl using PRIMARY (id_pelanggan=ps.id_pelanggan)  (cost=0.25 rows=1) (actual time=0.0213..0.0213 rows=1 loops=9589)
+                        -> Index lookup on dp using uq_detail_pesanan_produk (id_pesanan=ps.id_pesanan)  (cost=1.92 rows=1.92) (actual time=0.0441..0.0447 rows=2 loops=9589)
+ |
++----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (1.37 sec)
+
+--------------
+CREATE INDEX idx_pesanan_tanggal ON pesanan (tanggal_pesanan)
+--------------
+
+Query OK, 0 rows affected (1.21 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+--------------
+CREATE INDEX idx_pelanggan_nama ON pelanggan (nama_pelanggan)
+--------------
+
+Query OK, 0 rows affected (0.35 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+--------------
+SHOW INDEX FROM pesanan
+--------------
+
++---------+------------+----------------------+--------------+-----------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| Table   | Non_unique | Key_name             | Seq_in_index | Column_name     | Collation | Cardinality | Sub_part | Packed | Null | Index_type | Comment | Index_comment | Visible | Expression |
++---------+------------+----------------------+--------------+-----------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| pesanan |          0 | PRIMARY              |            1 | id_pesanan      | A         |      968734 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
+| pesanan |          1 | fk_pesanan_pelanggan |            1 | id_pelanggan    | A         |      101632 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
+| pesanan |          1 | idx_pesanan_tanggal  |            1 | tanggal_pesanan | A         |      968734 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
++---------+------------+----------------------+--------------+-----------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+3 rows in set (0.01 sec)
+
+--------------
+SHOW INDEX FROM pelanggan
+--------------
+
++-----------+------------+--------------------+--------------+----------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| Table     | Non_unique | Key_name           | Seq_in_index | Column_name    | Collation | Cardinality | Sub_part | Packed | Null | Index_type | Comment | Index_comment | Visible | Expression |
++-----------+------------+--------------------+--------------+----------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+| pelanggan |          0 | PRIMARY            |            1 | id_pelanggan   | A         |       88236 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
+| pelanggan |          0 | email              |            1 | email          | A         |       88236 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
+| pelanggan |          1 | idx_pelanggan_nama |            1 | nama_pelanggan | A         |       88236 |     NULL |   NULL |      | BTREE      |         |               | YES     | NULL       |
++-----------+------------+--------------------+--------------+----------------+-----------+-------------+----------+--------+------+------------+---------+---------------+---------+------------+
+3 rows in set (0.00 sec)
+
+--------------
+EXPLAIN SELECT id_pesanan, id_pelanggan, tanggal_pesanan, total_harga
+FROM pesanan
+WHERE tanggal_pesanan BETWEEN '2025-03-01 00:00:00' AND '2025-03-07 23:59:59'
+--------------
+
++----+-------------+---------+------------+-------+---------------------+---------------------+---------+------+------+----------+-----------------------+
+| id | select_type | table   | partitions | type  | possible_keys       | key                 | key_len | ref  | rows | filtered | Extra                 |
++----+-------------+---------+------------+-------+---------------------+---------------------+---------+------+------+----------+-----------------------+
+|  1 | SIMPLE      | pesanan | NULL       | range | idx_pesanan_tanggal | idx_pesanan_tanggal | 5       | NULL | 9589 |   100.00 | Using index condition |
++----+-------------+---------+------------+-------+---------------------+---------------------+---------+------+------+----------+-----------------------+
+1 row in set, 1 warning (0.00 sec)
+
+--------------
+EXPLAIN ANALYZE SELECT id_pesanan, id_pelanggan, tanggal_pesanan, total_harga
+FROM pesanan
+WHERE tanggal_pesanan BETWEEN '2025-03-01 00:00:00' AND '2025-03-07 23:59:59'
+--------------
+
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| EXPLAIN                                                                                                                                                                                                                                                                                                      |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| -> Index range scan on pesanan using idx_pesanan_tanggal over ('2025-03-01 00:00:00' <= tanggal_pesanan <= '2025-03-07 23:59:59'), with index condition: (pesanan.tanggal_pesanan between '2025-03-01 00:00:00' and '2025-03-07 23:59:59')  (cost=6246 rows=9589) (actual time=9.4..37.3 rows=9589 loops=1)
+ |
++--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.04 sec)
+
+--------------
+EXPLAIN SELECT id_pelanggan, nama_pelanggan, email, kota
+FROM pelanggan
+WHERE nama_pelanggan = 'Pelanggan Sim 77777'
+--------------
+
++----+-------------+-----------+------------+------+--------------------+--------------------+---------+-------+------+----------+-------+
+| id | select_type | table     | partitions | type | possible_keys      | key                | key_len | ref   | rows | filtered | Extra |
++----+-------------+-----------+------------+------+--------------------+--------------------+---------+-------+------+----------+-------+
+|  1 | SIMPLE      | pelanggan | NULL       | ref  | idx_pelanggan_nama | idx_pelanggan_nama | 402     | const |    1 |   100.00 | NULL  |
++----+-------------+-----------+------------+------+--------------------+--------------------+---------+-------+------+----------+-------+
+1 row in set, 1 warning (0.00 sec)
+
+--------------
+EXPLAIN ANALYZE SELECT id_pelanggan, nama_pelanggan, email, kota
+FROM pelanggan
+WHERE nama_pelanggan = 'Pelanggan Sim 77777'
+--------------
+
++---------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| EXPLAIN                                                                                                                                                       |
++---------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| -> Index lookup on pelanggan using idx_pelanggan_nama (nama_pelanggan='Pelanggan Sim 77777')  (cost=0.35 rows=1) (actual time=0.0204..0.0213 rows=1 loops=1)
+ |
++---------------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.00 sec)
+
+--------------
+EXPLAIN SELECT pl.kota, COUNT(DISTINCT ps.id_pesanan) AS jumlah_pesanan, SUM(dp.jumlah * dp.harga_saat_transaksi) AS omzet
+FROM pesanan ps
+JOIN pelanggan pl ON pl.id_pelanggan = ps.id_pelanggan
+JOIN detail_pesanan dp ON dp.id_pesanan = ps.id_pesanan
+WHERE ps.tanggal_pesanan BETWEEN '2025-03-01 00:00:00' AND '2025-03-07 23:59:59'
+GROUP BY pl.kota
+ORDER BY omzet DESC
+--------------
+
++----+-------------+-------+------------+--------+--------------------------------------------------+--------------------------+---------+-----------------------------------+------+----------+--------------------------------------------------------+
+| id | select_type | table | partitions | type   | possible_keys                                    | key                      | key_len | ref                               | rows | filtered | Extra                                                  |
++----+-------------+-------+------------+--------+--------------------------------------------------+--------------------------+---------+-----------------------------------+------+----------+--------------------------------------------------------+
+|  1 | SIMPLE      | ps    | NULL       | range  | PRIMARY,fk_pesanan_pelanggan,idx_pesanan_tanggal | idx_pesanan_tanggal      | 5       | NULL                              | 9589 |   100.00 | Using index condition; Using temporary; Using filesort |
+|  1 | SIMPLE      | pl    | NULL       | eq_ref | PRIMARY                                          | PRIMARY                  | 4       | praktikum_modul10.ps.id_pelanggan |    1 |   100.00 | NULL                                                   |
+|  1 | SIMPLE      | dp    | NULL       | ref    | uq_detail_pesanan_produk                         | uq_detail_pesanan_produk | 4       | praktikum_modul10.ps.id_pesanan   |    1 |   100.00 | NULL                                                   |
++----+-------------+-------+------------+--------+--------------------------------------------------+--------------------------+---------+-----------------------------------+------+----------+--------------------------------------------------------+
+3 rows in set, 1 warning (0.00 sec)
+
+--------------
+EXPLAIN ANALYZE SELECT pl.kota, COUNT(DISTINCT ps.id_pesanan) AS jumlah_pesanan, SUM(dp.jumlah * dp.harga_saat_transaksi) AS omzet
+FROM pesanan ps
+JOIN pelanggan pl ON pl.id_pelanggan = ps.id_pelanggan
+JOIN detail_pesanan dp ON dp.id_pesanan = ps.id_pesanan
+WHERE ps.tanggal_pesanan BETWEEN '2025-03-01 00:00:00' AND '2025-03-07 23:59:59'
+GROUP BY pl.kota
+ORDER BY omzet DESC
+--------------
+
++-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| EXPLAIN                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
++-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| -> Sort: omzet DESC  (actual time=1086..1086 rows=8 loops=1)
+    -> Stream results  (actual time=1082..1086 rows=8 loops=1)
+        -> Group aggregate: count(distinct pesanan.id_pesanan), sum(tmp_field)  (actual time=1082..1086 rows=8 loops=1)
+            -> Sort: pl.kota  (actual time=1081..1082 rows=19178 loops=1)
+                -> Stream results  (cost=29741 rows=18441) (actual time=2.62..1041 rows=19178 loops=1)
+                    -> Nested loop inner join  (cost=29741 rows=18441) (actual time=2.61..1026 rows=19178 loops=1)
+                        -> Nested loop inner join  (cost=9458 rows=9589) (actual time=2.19..257 rows=9589 loops=1)
+                            -> Index range scan on ps using idx_pesanan_tanggal over ('2025-03-01 00:00:00' <= tanggal_pesanan <= '2025-03-07 23:59:59'), with index condition: (ps.tanggal_pesanan between '2025-03-01 00:00:00' and '2025-03-07 23:59:59')  (cost=6102 rows=9589) (actual time=2.18..49.8 rows=9589 loops=1)
+                            -> Single-row index lookup on pl using PRIMARY (id_pelanggan=ps.id_pelanggan)  (cost=0.25 rows=1) (actual time=0.0214..0.0214 rows=1 loops=9589)
+                        -> Index lookup on dp using uq_detail_pesanan_produk (id_pesanan=ps.id_pesanan)  (cost=1.92 rows=1.92) (actual time=0.0793..0.0799 rows=2 loops=9589)
+ |
++-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (1.09 sec)
+
+--------------
+SELECT pl.kota, COUNT(DISTINCT ps.id_pesanan) AS jumlah_pesanan, SUM(dp.jumlah * dp.harga_saat_transaksi) AS omzet
+FROM pesanan ps
+JOIN pelanggan pl ON pl.id_pelanggan = ps.id_pelanggan
+JOIN detail_pesanan dp ON dp.id_pesanan = ps.id_pesanan
+WHERE ps.tanggal_pesanan BETWEEN '2025-03-01 00:00:00' AND '2025-03-07 23:59:59'
+GROUP BY pl.kota
+ORDER BY omzet DESC
+--------------
+
++-----------+----------------+--------------+
+| kota      | jumlah_pesanan | omzet        |
++-----------+----------------+--------------+
+| Kediri    |           1195 | 365180800.00 |
+| Surabaya  |           1195 | 364225700.00 |
+| Jember    |           1196 | 364132200.00 |
+| Gresik    |           1204 | 364010300.00 |
+| Sidoarjo  |           1204 | 363989500.00 |
+| Malang    |           1204 | 360577800.00 |
+| Pasuruan  |           1196 | 359355800.00 |
+| Mojokerto |           1195 | 358796100.00 |
++-----------+----------------+--------------+
+8 rows in set (0.65 sec)
+
+--------------
+EXPLAIN SELECT id_pesanan, tanggal_pesanan, total_harga
+FROM pesanan
+WHERE YEAR(tanggal_pesanan) = 2025 AND MONTH(tanggal_pesanan) = 3
+--------------
+
++----+-------------+---------+------------+------+---------------+------+---------+------+--------+----------+-------------+
+| id | select_type | table   | partitions | type | possible_keys | key  | key_len | ref  | rows   | filtered | Extra       |
++----+-------------+---------+------------+------+---------------+------+---------+------+--------+----------+-------------+
+|  1 | SIMPLE      | pesanan | NULL       | ALL  | NULL          | NULL | NULL    | NULL | 968734 |   100.00 | Using where |
++----+-------------+---------+------------+------+---------------+------+---------+------+--------+----------+-------------+
+1 row in set, 1 warning (0.00 sec)
+
+--------------
+EXPLAIN SELECT id_pesanan, tanggal_pesanan, total_harga
+FROM pesanan
+WHERE tanggal_pesanan >= '2024-01-01'
+--------------
+
++----+-------------+---------+------------+------+---------------------+------+---------+------+--------+----------+-------------+
+| id | select_type | table   | partitions | type | possible_keys       | key  | key_len | ref  | rows   | filtered | Extra       |
++----+-------------+---------+------------+------+---------------------+------+---------+------+--------+----------+-------------+
+|  1 | SIMPLE      | pesanan | NULL       | ALL  | idx_pesanan_tanggal | NULL | NULL    | NULL | 968734 |    50.00 | Using where |
++----+-------------+---------+------------+------+---------------------+------+---------+------+--------+----------+-------------+
+1 row in set, 1 warning (0.00 sec)
+
+--------------
+DROP TABLE angka
+--------------
+
+Query OK, 0 rows affected (0.01 sec)
+
+--------------
+DELETE FROM pesanan WHERE id_pesanan > 1000
+--------------
+
+Query OK, 1000000 rows affected (50.99 sec)
+
+--------------
+DELETE FROM produk WHERE id_produk > 1000
+--------------
+
+Query OK, 1000 rows affected (0.70 sec)
+
+--------------
+DELETE FROM pelanggan WHERE id_pelanggan > 1000
+--------------
+
+Query OK, 100000 rows affected (4.00 sec)
+
+--------------
+ANALYZE TABLE pelanggan, produk, pesanan, detail_pesanan
+--------------
+
++----------------------------------+---------+----------+----------+
+| Table                            | Op      | Msg_type | Msg_text |
++----------------------------------+---------+----------+----------+
+| praktikum_modul10.pelanggan      | analyze | status   | OK       |
+| praktikum_modul10.produk         | analyze | status   | OK       |
+| praktikum_modul10.pesanan        | analyze | status   | OK       |
+| praktikum_modul10.detail_pesanan | analyze | status   | OK       |
++----------------------------------+---------+----------+----------+
+4 rows in set (0.03 sec)
+
+--------------
+SELECT 'pelanggan' AS tabel, COUNT(*) AS jumlah_baris FROM pelanggan
+UNION ALL SELECT 'produk', COUNT(*) FROM produk
+UNION ALL SELECT 'pesanan', COUNT(*) FROM pesanan
+UNION ALL SELECT 'detail_pesanan', COUNT(*) FROM detail_pesanan
+--------------
+
++----------------+--------------+
+| tabel          | jumlah_baris |
++----------------+--------------+
+| pelanggan      |            5 |
+| produk         |            7 |
+| pesanan        |            3 |
+| detail_pesanan |            6 |
++----------------+--------------+
+4 rows in set (0.10 sec)
+
+Bye
