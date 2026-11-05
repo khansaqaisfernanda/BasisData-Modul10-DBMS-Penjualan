@@ -16,6 +16,14 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Current Database: `praktikum_modul10`
+--
+
+CREATE DATABASE /*!32312 IF NOT EXISTS*/ `praktikum_modul10` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
+
+USE `praktikum_modul10`;
+
+--
 -- Table structure for table `detail_pesanan`
 --
 
@@ -23,19 +31,15 @@ DROP TABLE IF EXISTS `detail_pesanan`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `detail_pesanan` (
-  `id_detail` int NOT NULL AUTO_INCREMENT,
-  `id_pesanan` int NOT NULL,
-  `id_produk` int NOT NULL,
-  `jumlah` int NOT NULL,
+  `id_pesanan` int unsigned NOT NULL,
+  `id_produk` int unsigned NOT NULL,
+  `jumlah` int unsigned NOT NULL,
   `harga_saat_transaksi` decimal(12,2) NOT NULL,
-  PRIMARY KEY (`id_detail`),
-  UNIQUE KEY `uq_detail_pesanan_produk` (`id_pesanan`,`id_produk`),
+  PRIMARY KEY (`id_pesanan`,`id_produk`),
   KEY `fk_detail_produk` (`id_produk`),
-  CONSTRAINT `fk_detail_pesanan` FOREIGN KEY (`id_pesanan`) REFERENCES `pesanan` (`id_pesanan`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `fk_detail_produk` FOREIGN KEY (`id_produk`) REFERENCES `produk` (`id_produk`) ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT `chk_detail_harga` CHECK ((`harga_saat_transaksi` >= 0)),
-  CONSTRAINT `chk_detail_jumlah` CHECK ((`jumlah` > 0))
-) ENGINE=InnoDB AUTO_INCREMENT=2031595 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  CONSTRAINT `fk_detail_pesanan` FOREIGN KEY (`id_pesanan`) REFERENCES `pesanan` (`id_pesanan`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `fk_detail_produk` FOREIGN KEY (`id_produk`) REFERENCES `produk` (`id_produk`) ON DELETE RESTRICT ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -44,7 +48,7 @@ CREATE TABLE `detail_pesanan` (
 
 LOCK TABLES `detail_pesanan` WRITE;
 /*!40000 ALTER TABLE `detail_pesanan` DISABLE KEYS */;
-INSERT INTO `detail_pesanan` VALUES (1,101,1,1,75000.00),(2,101,3,2,17500.00),(3,102,2,1,38000.00),(4,102,5,2,8500.00),(7,103,4,2,25000.00),(8,103,6,3,4500.00);
+INSERT INTO `detail_pesanan` VALUES (101,10,1,200000.00),(101,11,2,100000.00),(102,12,1,1500000.00),(103,11,2,100000.00);
 /*!40000 ALTER TABLE `detail_pesanan` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -56,16 +60,13 @@ DROP TABLE IF EXISTS `pelanggan`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `pelanggan` (
-  `id_pelanggan` int NOT NULL AUTO_INCREMENT,
-  `nama_pelanggan` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `email` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `no_hp` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `kota` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `tanggal_daftar` date NOT NULL DEFAULT (curdate()),
+  `id_pelanggan` int unsigned NOT NULL AUTO_INCREMENT,
+  `nama_pelanggan` varchar(100) NOT NULL,
+  `email` varchar(120) NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id_pelanggan`),
-  UNIQUE KEY `email` (`email`),
-  KEY `idx_pelanggan_nama` (`nama_pelanggan`)
-) ENGINE=InnoDB AUTO_INCREMENT=101001 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  UNIQUE KEY `email` (`email`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -74,7 +75,7 @@ CREATE TABLE `pelanggan` (
 
 LOCK TABLES `pelanggan` WRITE;
 /*!40000 ALTER TABLE `pelanggan` DISABLE KEYS */;
-INSERT INTO `pelanggan` VALUES (1,'Andi Pratama','andi@mail.test','081200000001','Surabaya','2026-11-05'),(2,'Budi Santoso','budi@mail.test','081200000002','Malang','2026-11-05'),(3,'Citra Lestari','citra@mail.test','081299999993','Sidoarjo','2026-11-05'),(4,'Dewi Anggraini','dewi@mail.test','081200000004','Surabaya','2026-11-05'),(5,'Eka Saputra','eka@mail.test','081200000005','Gresik','2026-11-05');
+INSERT INTO `pelanggan` VALUES (1,'Budi','budi@example.test','2026-11-05 08:01:36'),(2,'Siti','siti@example.test','2026-11-05 08:01:36');
 /*!40000 ALTER TABLE `pelanggan` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -86,16 +87,15 @@ DROP TABLE IF EXISTS `pesanan`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `pesanan` (
-  `id_pesanan` int NOT NULL AUTO_INCREMENT,
-  `id_pelanggan` int NOT NULL,
-  `tanggal_pesanan` datetime NOT NULL,
-  `status` enum('baru','dibayar','dikirim','selesai','batal') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'baru',
-  `total_harga` decimal(14,2) NOT NULL DEFAULT '0.00',
+  `id_pesanan` int unsigned NOT NULL AUTO_INCREMENT,
+  `id_pelanggan` int unsigned NOT NULL,
+  `tanggal` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `status_pesanan` enum('baru','diproses','selesai','batal') NOT NULL DEFAULT 'baru',
   PRIMARY KEY (`id_pesanan`),
   KEY `fk_pesanan_pelanggan` (`id_pelanggan`),
-  KEY `idx_pesanan_tanggal` (`tanggal_pesanan`),
+  KEY `idx_pesanan_tanggal` (`tanggal`),
   CONSTRAINT `fk_pesanan_pelanggan` FOREIGN KEY (`id_pelanggan`) REFERENCES `pelanggan` (`id_pelanggan`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=1001001 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1001001 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -104,7 +104,7 @@ CREATE TABLE `pesanan` (
 
 LOCK TABLES `pesanan` WRITE;
 /*!40000 ALTER TABLE `pesanan` DISABLE KEYS */;
-INSERT INTO `pesanan` VALUES (101,1,'2026-10-01 10:15:00','selesai',110000.00),(102,2,'2026-10-02 14:40:00','dibayar',55000.00),(103,3,'2026-10-03 09:30:00','dibayar',63500.00);
+INSERT INTO `pesanan` VALUES (101,1,'2026-10-01 09:00:00','selesai'),(102,2,'2026-10-02 10:00:00','diproses'),(103,1,'2026-10-05 09:00:00','baru');
 /*!40000 ALTER TABLE `pesanan` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -116,15 +116,12 @@ DROP TABLE IF EXISTS `produk`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `produk` (
-  `id_produk` int NOT NULL AUTO_INCREMENT,
-  `nama_produk` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `kategori` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `harga` decimal(12,2) NOT NULL,
-  `stok` int NOT NULL DEFAULT '0',
-  PRIMARY KEY (`id_produk`),
-  CONSTRAINT `chk_produk_harga` CHECK ((`harga` >= 0)),
-  CONSTRAINT `chk_produk_stok` CHECK ((`stok` >= 0))
-) ENGINE=InnoDB AUTO_INCREMENT=2001 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `id_produk` int unsigned NOT NULL AUTO_INCREMENT,
+  `nama_produk` varchar(100) NOT NULL,
+  `harga_produk` decimal(12,2) NOT NULL,
+  `stok` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id_produk`)
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -133,13 +130,9 @@ CREATE TABLE `produk` (
 
 LOCK TABLES `produk` WRITE;
 /*!40000 ALTER TABLE `produk` DISABLE KEYS */;
-INSERT INTO `produk` VALUES (1,'Beras Premium 5 kg','Sembako',80000.00,50),(2,'Minyak Goreng 2 L','Sembako',38000.00,40),(3,'Gula Pasir 1 kg','Sembako',17500.00,60),(4,'Kopi Bubuk 200 g','Minuman',25000.00,28),(5,'Teh Celup isi 25','Minuman',8500.00,80),(6,'Sabun Mandi','Perlengkapan',4500.00,97),(7,'Mi Instan Goreng','Makanan',3500.00,200);
+INSERT INTO `produk` VALUES (10,'Keyboard',220000.00,15),(11,'Mouse',100000.00,30),(12,'Monitor',1500000.00,5);
 /*!40000 ALTER TABLE `produk` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Dumping routines for database 'praktikum_modul10'
---
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -150,4 +143,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-11-05 14:30:45
+-- Dump completed on 2026-11-05 15:02:29
